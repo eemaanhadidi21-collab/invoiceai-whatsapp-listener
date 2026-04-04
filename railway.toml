@@ -9,4 +9,4 @@ restartPolicyMaxRetries = 5
 
 [[mounts]]
 source = "session_data"
-mountPath = "/app/session"
+mountPath = "/data"

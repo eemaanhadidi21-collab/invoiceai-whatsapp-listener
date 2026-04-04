@@ -10,7 +10,7 @@ const WEBHOOK_URL =
   "https://invoiceai-dashboard-575.netlify.app/api/webhook";
 
 const client = new Client({
-  authStrategy: new LocalAuth({ dataPath: "./session" }),
+  authStrategy: new LocalAuth({ dataPath: "/data/session" }),
   puppeteer: {
     headless: true,
     args: [

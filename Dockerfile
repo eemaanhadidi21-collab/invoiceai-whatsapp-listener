@@ -23,6 +23,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+ENV WHATSAPP_SESSION_PATH=/data/session
 
 WORKDIR /app
 
