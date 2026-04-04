@@ -45,8 +45,10 @@ client.on("disconnected", (reason) => {
   process.exit(1);
 });
 
-client.on("message", async (msg) => {
-  console.log("Message received:", msg.body);
+async function handleMessage(msg, eventName) {
+  const chat = await msg.getChat();
+  console.log(`[${eventName}] Message received:`, msg.body);
+  console.log(`  chatId: ${chat.id._serialized}, isGroup: ${chat.isGroup}, chatName: ${chat.name}`);
   try {
     const contact = await msg.getContact();
     const senderName = contact.pushname || contact.name || msg.from;
@@ -91,6 +93,13 @@ client.on("message", async (msg) => {
   } catch (err) {
     console.error("Failed to forward message:", err.message);
   }
+}
+
+client.on("message", (msg) => handleMessage(msg, "message"));
+client.on("message_create", (msg) => handleMessage(msg, "message_create"));
+
+client.on("message_reaction", (reaction) => {
+  console.log("[message_reaction] Reaction received:", JSON.stringify(reaction, null, 2));
 });
 
 const server = http.createServer((req, res) => {
