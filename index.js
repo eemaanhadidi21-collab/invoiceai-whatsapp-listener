@@ -45,10 +45,12 @@ client.on("disconnected", (reason) => {
   process.exit(1);
 });
 
+const TARGET_GROUP = "Invoice AI Ops";
+
 async function handleMessage(msg, eventName) {
   const chat = await msg.getChat();
-  console.log(`[${eventName}] Message received:`, msg.body);
-  console.log(`  chatId: ${chat.id._serialized}, isGroup: ${chat.isGroup}, chatName: ${chat.name}`);
+  console.log(`[${eventName}] ${chat.name} | isGroup: ${chat.isGroup} | ${msg.body}`);
+  if (!chat.isGroup || chat.name !== TARGET_GROUP) return;
   try {
     const contact = await msg.getContact();
     const senderName = contact.pushname || contact.name || msg.from;
