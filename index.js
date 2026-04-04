@@ -47,6 +47,20 @@ client.on("disconnected", (reason) => {
 
 const TARGET_GROUP = "Invoice AI Ops";
 
+const COMPLETION_PHRASES = [
+  "done",
+  "did it",
+  "finished",
+  "completed",
+  "it's done",
+  "its done",
+];
+
+function isCompletionPhrase(text) {
+  const normalized = text.trim().toLowerCase().replace(/[.!?,]/g, "");
+  return COMPLETION_PHRASES.includes(normalized);
+}
+
 async function handleMessage(msg) {
   const chat = await msg.getChat();
   if (chat.name !== TARGET_GROUP) return;
@@ -55,19 +69,33 @@ async function handleMessage(msg) {
     const senderName = contact.pushname || contact.name || msg.from;
     const phone = msg.from.replace("@c.us", "");
 
+    const hasQuotedMsg = msg.hasQuotedMsg;
+    const isCompletion = isCompletionPhrase(msg.body) || hasQuotedMsg;
+
+    let referencedMessage = msg.body;
+    if (hasQuotedMsg) {
+      const quoted = await msg.getQuotedMessage();
+      referencedMessage = quoted.body;
+    }
+
+    const message = {
+      type: "text",
+      text: { body: msg.body },
+      from: phone,
+    };
+
+    if (isCompletion) {
+      message.action = "complete";
+      message.referencedMessage = referencedMessage;
+    }
+
     const payload = {
       entry: [
         {
           changes: [
             {
               value: {
-                messages: [
-                  {
-                    type: "text",
-                    text: { body: msg.body },
-                    from: phone,
-                  },
-                ],
+                messages: [message],
                 contacts: [
                   {
                     profile: { name: senderName },
