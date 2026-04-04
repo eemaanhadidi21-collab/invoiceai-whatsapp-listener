@@ -46,6 +46,7 @@ client.on("disconnected", (reason) => {
 });
 
 client.on("message", async (msg) => {
+  console.log("Message received:", msg.body);
   try {
     const contact = await msg.getContact();
     const senderName = contact.pushname || contact.name || msg.from;
