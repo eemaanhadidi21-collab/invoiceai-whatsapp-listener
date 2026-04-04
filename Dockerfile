@@ -31,6 +31,4 @@ RUN npm install
 
 COPY index.js ./
 
-VOLUME ["/app/session"]
-
 CMD ["node", "index.js"]
