@@ -1,5 +1,10 @@
 const { Client, LocalAuth } = require("whatsapp-web.js");
-const qrcode = require("qrcode-terminal");
+const QRCode = require("qrcode");
+const http = require("http");
+const fs = require("fs");
+const path = require("path");
+
+const QR_PATH = "/tmp/qr.png";
 
 const WEBHOOK_URL =
   "https://invoiceai-dashboard-575.netlify.app/api/webhook";
@@ -18,9 +23,9 @@ const client = new Client({
   },
 });
 
-client.on("qr", (qr) => {
-  console.log("Scan this QR code to log in:");
-  qrcode.generate(qr, { small: true });
+client.on("qr", async (qr) => {
+  await QRCode.toFile(QR_PATH, qr, { width: 300 });
+  console.log(`QR code saved to ${QR_PATH} — view at http://localhost:3000/qr`);
 });
 
 client.on("ready", () => {
@@ -82,6 +87,25 @@ client.on("message", async (msg) => {
   } catch (err) {
     console.error("Failed to forward message:", err.message);
   }
+});
+
+const server = http.createServer((req, res) => {
+  if (req.url === "/qr") {
+    if (fs.existsSync(QR_PATH)) {
+      res.writeHead(200, { "Content-Type": "image/png" });
+      fs.createReadStream(QR_PATH).pipe(res);
+    } else {
+      res.writeHead(404, { "Content-Type": "text/plain" });
+      res.end("QR code not yet generated");
+    }
+  } else {
+    res.writeHead(404, { "Content-Type": "text/plain" });
+    res.end("Not found");
+  }
+});
+
+server.listen(3000, () => {
+  console.log("QR server running at http://localhost:3000/qr");
 });
 
 client.initialize();
