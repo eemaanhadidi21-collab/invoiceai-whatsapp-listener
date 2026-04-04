@@ -47,31 +47,34 @@ client.on("disconnected", (reason) => {
 
 client.on("message", async (msg) => {
   try {
-    const chat = await msg.getChat();
     const contact = await msg.getContact();
+    const senderName = contact.pushname || contact.name || msg.from;
+    const phone = msg.from.replace("@c.us", "");
 
     const payload = {
-      from: msg.from,
-      to: msg.to,
-      body: msg.body,
-      timestamp: msg.timestamp,
-      type: msg.type,
-      isGroup: chat.isGroup,
-      chatName: chat.name,
-      contactName: contact.pushname || contact.name || msg.from,
-      messageId: msg.id._serialized,
+      entry: [
+        {
+          changes: [
+            {
+              value: {
+                messages: [
+                  {
+                    type: "text",
+                    text: { body: msg.body },
+                    from: phone,
+                  },
+                ],
+                contacts: [
+                  {
+                    profile: { name: senderName },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
     };
-
-    if (msg.hasMedia) {
-      const media = await msg.downloadMedia();
-      if (media) {
-        payload.media = {
-          mimetype: media.mimetype,
-          filename: media.filename || null,
-          data: media.data,
-        };
-      }
-    }
 
     const res = await fetch(WEBHOOK_URL, {
       method: "POST",
@@ -82,7 +85,7 @@ client.on("message", async (msg) => {
     if (!res.ok) {
       console.error(`Webhook error ${res.status}: ${await res.text()}`);
     } else {
-      console.log(`Forwarded message from ${payload.contactName}`);
+      console.log(`Forwarded message from ${senderName}`);
     }
   } catch (err) {
     console.error("Failed to forward message:", err.message);
