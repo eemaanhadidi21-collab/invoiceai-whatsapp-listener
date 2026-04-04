@@ -47,10 +47,9 @@ client.on("disconnected", (reason) => {
 
 const TARGET_GROUP = "Invoice AI Ops";
 
-async function handleMessage(msg, eventName) {
+async function handleMessage(msg) {
   const chat = await msg.getChat();
-  console.log(`[${eventName}] ${chat.name} | isGroup: ${chat.isGroup} | ${msg.body}`);
-  if (!chat.isGroup || chat.name !== TARGET_GROUP) return;
+  if (chat.name !== TARGET_GROUP) return;
   try {
     const contact = await msg.getContact();
     const senderName = contact.pushname || contact.name || msg.from;
@@ -90,19 +89,15 @@ async function handleMessage(msg, eventName) {
     if (!res.ok) {
       console.error(`Webhook error ${res.status}: ${await res.text()}`);
     } else {
-      console.log(`Forwarded message from ${senderName}`);
+      console.log(`Forwarded: "${msg.body}" from ${senderName}`);
     }
   } catch (err) {
     console.error("Failed to forward message:", err.message);
   }
 }
 
-client.on("message", (msg) => handleMessage(msg, "message"));
-client.on("message_create", (msg) => handleMessage(msg, "message_create"));
-
-client.on("message_reaction", (reaction) => {
-  console.log("[message_reaction] Reaction received:", JSON.stringify(reaction, null, 2));
-});
+client.on("message", handleMessage);
+client.on("message_create", handleMessage);
 
 const server = http.createServer((req, res) => {
   if (req.url === "/qr") {
