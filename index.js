@@ -28,8 +28,18 @@ client.on("qr", async (qr) => {
   console.log(`QR code saved to ${QR_PATH} — view at http://localhost:3000/qr`);
 });
 
-client.on("ready", () => {
+client.on("ready", async () => {
   console.log("WhatsApp client is ready");
+  try {
+    const chats = await client.getChats();
+    const groups = chats.filter((c) => c.isGroup);
+    console.log(`Found ${groups.length} group chats:`);
+    groups.forEach((g) => {
+      console.log(`  [GROUP] "${g.name}" → ${g.id._serialized}`);
+    });
+  } catch (err) {
+    console.error("Failed to list group chats:", err.message);
+  }
 });
 
 client.on("authenticated", () => {
