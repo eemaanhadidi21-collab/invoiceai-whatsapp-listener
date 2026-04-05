@@ -9,6 +9,25 @@ const QR_PATH = "/tmp/qr.png";
 const WEBHOOK_URL =
   "https://invoiceai-dashboard-575.netlify.app/api/webhook";
 
+// Clean up Chromium lock files from previous runs
+const SESSION_DIR = "/data/session";
+try {
+  const cleanLocks = (dir) => {
+    if (!fs.existsSync(dir)) return;
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) cleanLocks(full);
+      else if (entry.name === "SingletonLock" || entry.name === "SingletonCookie" || entry.name === "SingletonSocket") {
+        fs.unlinkSync(full);
+        console.log(`Removed lock file: ${full}`);
+      }
+    }
+  };
+  cleanLocks(SESSION_DIR);
+} catch (err) {
+  console.error("Lock cleanup error:", err.message);
+}
+
 const client = new Client({
   authStrategy: new LocalAuth({ dataPath: "/data/session" }),
   puppeteer: {
