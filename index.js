@@ -128,7 +128,7 @@ client.on("message", handleMessage);
 client.on("message_create", handleMessage);
 
 const server = http.createServer((req, res) => {
-  if (req.url === "/qr") {
+  if (req.url === "/qr" && req.method === "GET") {
     if (fs.existsSync(QR_PATH)) {
       res.writeHead(200, { "Content-Type": "image/png" });
       fs.createReadStream(QR_PATH).pipe(res);
@@ -136,6 +136,27 @@ const server = http.createServer((req, res) => {
       res.writeHead(404, { "Content-Type": "text/plain" });
       res.end("QR code not yet generated");
     }
+  } else if (req.url === "/send" && req.method === "POST") {
+    let body = "";
+    req.on("data", (chunk) => (body += chunk));
+    req.on("end", async () => {
+      try {
+        const { to, message } = JSON.parse(body);
+        if (!to || !message) {
+          res.writeHead(400, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "to and message are required" }));
+          return;
+        }
+        await client.sendMessage(to, message);
+        console.log(`Sent message to ${to}`);
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ status: "sent" }));
+      } catch (err) {
+        console.error("Send error:", err.message);
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: err.message }));
+      }
+    });
   } else {
     res.writeHead(404, { "Content-Type": "text/plain" });
     res.end("Not found");
