@@ -91,20 +91,56 @@ function isCompletionPhrase(text) {
 }
 
 async function handleMessage(msg) {
-  const chat = await msg.getChat();
-  if (chat.name !== TARGET_GROUP) return;
   try {
-    const contact = await msg.getContact();
-    const senderName = contact.pushname || contact.name || msg.from;
-    const phone = msg.from.replace("@c.us", "");
+    // Guard against undefined / malformed messages (system events, status updates, etc.)
+    if (!msg || !msg.body || !msg.from) {
+      console.log("[skip] message missing body/from:", {
+        hasMsg: !!msg,
+        type: msg && msg.type,
+        hasBody: !!(msg && msg.body),
+        hasFrom: !!(msg && msg.from),
+      });
+      return;
+    }
 
-    const hasQuotedMsg = msg.hasQuotedMsg;
+    // Only handle plain text chat messages
+    if (msg.type && msg.type !== "chat") {
+      return;
+    }
+
+    let chat;
+    try {
+      chat = await msg.getChat();
+    } catch (chatErr) {
+      console.error("Failed to get chat for message:", chatErr.message);
+      return;
+    }
+
+    if (!chat || chat.name !== TARGET_GROUP) return;
+
+    let contact;
+    try {
+      contact = await msg.getContact();
+    } catch (contactErr) {
+      console.error("Failed to get contact:", contactErr.message);
+      contact = null;
+    }
+
+    const senderName =
+      (contact && (contact.pushname || contact.name)) || msg.from;
+    const phone = String(msg.from).replace("@c.us", "");
+
+    const hasQuotedMsg = !!msg.hasQuotedMsg;
     const isCompletion = isCompletionPhrase(msg.body) || hasQuotedMsg;
 
     let referencedMessage = msg.body;
     if (hasQuotedMsg) {
-      const quoted = await msg.getQuotedMessage();
-      referencedMessage = quoted.body;
+      try {
+        const quoted = await msg.getQuotedMessage();
+        if (quoted && quoted.body) referencedMessage = quoted.body;
+      } catch (quotedErr) {
+        console.error("Failed to get quoted message:", quotedErr.message);
+      }
     }
 
     const message = {
@@ -149,7 +185,24 @@ async function handleMessage(msg) {
       console.log(`Forwarded: "${msg.body}" from ${senderName}`);
     }
   } catch (err) {
-    console.error("Failed to forward message:", err.message);
+    console.error("Message handler error:", err && err.stack ? err.stack : err);
+    try {
+      console.error(
+        "Offending msg snapshot:",
+        JSON.stringify(
+          {
+            type: msg && msg.type,
+            from: msg && msg.from,
+            to: msg && msg.to,
+            hasBody: !!(msg && msg.body),
+            hasId: !!(msg && msg.id),
+            fromMe: msg && msg.fromMe,
+          },
+          null,
+          2
+        )
+      );
+    } catch {}
   }
 }
 
